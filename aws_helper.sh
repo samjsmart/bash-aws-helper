@@ -3,7 +3,7 @@
 ##
 # Tab completion
 ##
-complete -W "clear help mfa mfa-validate set-creds validate" aws-helper;
+complete -W "assume-role clear help mfa mfa-validate set-creds validate" aws-helper;
 
 ##
 # Main aws_helper function
@@ -13,6 +13,9 @@ function aws-helper() {
   shift;
 
   case "${action}" in
+    'assume-role')
+      __aws_helper_assume_role ${@};
+    ;;
     'clear')
       __aws_helper_clear_credentials ${@};
     ;;
@@ -93,9 +96,10 @@ EOF
   unset AWS_SECRET_ACCESS_KEY;
   unset AWS_SESSION_TOKEN;
   unset AWS_MFA_EXPIRY;
-  unset AWS_SESSION_EXPIRY;
   unset AWS_ROLE;
   unset AWS_PROFILE;
+  unset AWS_ACCOUNT_ID;
+  unset AWS_ARN;
 }
 
 ##
@@ -135,6 +139,10 @@ EOF
     __aws_helper_log 'info' "Account ID: ${account_id}";
     __aws_helper_log 'info' "ARN: ${arn}";
     __aws_helper_log 'info' "User ID: ${user_id}";
+
+    export AWS_ACCOUNT_ID="${account_id}";
+    export AWS_ARN="${arn}";
+
     return 0;
   else
     __aws_helper_log 'error' 'Error checking credentials';
@@ -300,4 +308,101 @@ EOF
     __aws_helper_log 'error' 'MFA session expired';
     return 1;
   fi
+}
+
+##
+# Assume a cross account role
+##
+function __aws_helper_assume_role() {
+  if [[ "${1}" == "help" ]]; then 
+      cat <<EOF
+Assume a role. Provide either a role name and account or the role arn. If no account
+is provided then the current account is implicitly assumed.
+
+Usage: aws-helper assume-role (ROLE-ARN) OR (ROLE-NAME [ROLE-ACCOUNT]) [OPTIONS]
+
+Options:
+  --external-id ID  External ID to use if required
+  --mfa TOKEN       For roles that require MFA to be present
+  --duration VALUE  Duration, in seconds, that credentials should remain valid.
+                    Valid ranges are 900 to 129600. Default is 3,600 seconds (1 hour).
+
+EOF
+      return 0;
+  fi
+
+  __aws_helper_validate_credentials --silent;
+  if [[ ${?} -ne 0 ]]; then
+    __aws_helper_log 'error' 'No valid credentials present - Use aws-helper set-creds';
+    return 1;
+  fi;
+
+  local target_role_arn;
+  local target_account;
+  local target_role;
+  local target_external_id;
+  local sts_mfa;
+  local sts_duration="--duration-seconds 3600";
+
+  while (($#)); do
+    case "${1}" in
+      '--mfa')
+        sts_mfa="--serial-number $(aws iam list-mfa-devices --query 'MFADevices[*].SerialNumber' --output text) --token-code ${2}";
+        shift 2;
+      ;;
+      '--external-id')
+        target_external_id="--external-id ${2}";
+        shift 2;
+      ;;
+      '--duration')
+        sts_duration="--duration-seconds ${2}";
+        shift 2;
+      ;;
+      arn:aws:iam::*:role/*)
+        target_role_arn="${1}";
+        shift;
+      ;;
+      +([0-9]))
+        target_account="${1}";
+        shift;
+      ;;
+      *)
+        target_role="${1}";
+        shift;
+    esac;
+  done
+
+  if [ -z $target_role_arn ]; then
+    if [[ -z $target_role ]]; then
+      __aws_helper_log 'error' 'No role ARN provided and insufficient information to construct arn';
+      return 1;
+    fi;
+    target_role_arn="arn:aws:iam::${target_account:-${AWS_ACCOUNT_ID}}:role/${target_role}";
+     __aws_helper_log 'info' "No explicit role ARN provided. Inferred role ARN: ${target_role_arn}";
+  else
+     __aws_helper_log 'info' "Role ARN: ${target_role_arn}";
+  fi;
+
+  sts_token=($(aws sts assume-role ${sts_duration} ${target_external_id} ${sts_mfa} --role-arn "${target_role_arn}" --role-session-name "${AWS_ARN//[:\/]/-}" --query Credentials --output text));
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Failed to get STS token';
+    return 1;
+  fi;
+
+  AWS_ACCESS_KEY_ID="${sts_token[0]}";
+  AWS_SECRET_ACCESS_KEY="${sts_token[2]}";
+  AWS_SESSION_TOKEN="${sts_token[3]}";
+
+  if [[ -n "${AWS_ACCESS_KEY_ID}" && -n "${AWS_SECRET_ACCESS_KEY}" && -n "${AWS_SESSION_TOKEN}" ]]; then
+    export AWS_ACCESS_KEY_ID;
+    export AWS_SECRET_ACCESS_KEY;
+    export AWS_SESSION_TOKEN;
+    export AWS_ROLE="${target_role_arn}"
+
+    __aws_helper_log 'info' 'Role assumption successful';
+    return 0;
+  else
+    __aws_helper_log 'error' 'Role assumption failed';
+    return 1;
+  fi;
 }

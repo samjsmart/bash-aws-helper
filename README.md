@@ -57,6 +57,22 @@ Options:
 ```
 
 
+#### aws-helper assume-role
+---
+Assume a role. Provide either a role name and account or the role arn. If no account
+is provided then the current account is implicitly assumed.
+
+Usage: `aws-helper assume-role (ROLE-ARN) OR (ROLE-NAME [ROLE-ACCOUNT]) [OPTIONS]`
+
+Options:
+```
+--external-id ID  External ID to use if required
+--mfa TOKEN       For roles that require MFA to be present
+--duration VALUE  Duration, in seconds, that credentials should remain valid.
+                  Valid ranges are 900 to 129600. Default is 3,600 seconds (1 hour).
+```
+
+
 #### aws-helper clear
 ---
 Clear current environment credentials.

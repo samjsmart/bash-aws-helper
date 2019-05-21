@@ -218,12 +218,12 @@ EOF
 
   __aws_helper_validate_credentials --silent;
   if [ ${?} -ne 0 ]; then
-    __aws_helper_log 'error' 'No valid credentials present - Use aws_set_credentials';
+    __aws_helper_log 'error' 'No valid credentials present - Use aws-helper set-creds';
     return 1;
   fi;
 
   if [[ -n "${AWS_SESSION_TOKEN}" ]]; then
-    __aws_helper_log 'error' 'STS token already present - Use aws_clear_credentials to unset it';
+    __aws_helper_log 'error' 'STS token already present - Use aws-helper clear';
     return 1;
   fi;
 
@@ -285,7 +285,7 @@ EOF
   fi
 
   if [[ -z "${AWS_SESSION_TOKEN}" || -z "${AWS_MFA_EXPIRY}" ]]; then
-    __aws_helper_log 'error' 'No STS session present - Use aws_mfa to obtain one';
+    __aws_helper_log 'error' 'No STS session present - Use aws-helper mfa to obtain one';
     return 1;
   fi;
 

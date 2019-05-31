@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Enable extended shell globbing
+shopt -s extglob
+
 ##
 # Tab completion
 ##
@@ -63,7 +66,7 @@ function __aws_helper_reset_log_level() {
 function __aws_helper_log() {
   local silent="${AWS_HELPER_LOG_SILENT:-0}"
   local level="$(echo "${1}" | awk '{print toupper($0)}')";
-  local -A colours;
+  local colours;
 
   if [[ silent -eq 1 ]]; then
     return 0;

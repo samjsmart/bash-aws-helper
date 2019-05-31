@@ -66,18 +66,26 @@ function __aws_helper_reset_log_level() {
 function __aws_helper_log() {
   local silent="${AWS_HELPER_LOG_SILENT:-0}"
   local level="$(echo "${1}" | awk '{print toupper($0)}')";
-  local colours;
+  local default_color='\033[0m';
+  local color;
 
   if [[ silent -eq 1 ]]; then
     return 0;
   fi;
 
-  colours['INFO']='\033[32m';   # Green
-  colours['WARN']='\033[33m';   # Yellow
-  colours['ERROR']='\033[31m';  # Red
-  colours['DEFAULT']='\033[0m'; # Default
+  case "${level}" in
+    'INFO')
+      color='\033[32m'
+    ;;
+    'ERROR')
+      color='\033[31m'
+    ;;
+    'WARN')
+      color='\033[33m'
+    ;;
+  esac
 
-  echo ${3} -e "[AWS Helper] ${colours[${level}]}[${level}] $2${colours['DEFAULT']}";
+  echo ${3} -e "[AWS Helper] ${color}[${level}] $2${default_color}";
 }
 
 ##

@@ -50,7 +50,6 @@ EOF
     ;;
   esac
 }
-export -f aws-helper
 
 ##
 # Helper function to ensure log levels
@@ -306,9 +305,17 @@ EOF
   if [[ -z "${AWS_SESSION_TOKEN}" || -z "${AWS_MFA_EXPIRY}" ]]; then
     __aws_helper_log 'error' 'No STS session present - Use aws-helper mfa to obtain one';
     return 1;
-  fi;
+  fi
 
-  local expiry_epoch="$(date -d ${AWS_MFA_EXPIRY} +%s)"
+  local expiry_epoch;
+
+  # Workaround for OSX date
+  if [ "$(uname)" == "Darwin" ]; then
+    expiry_epoch="$(date -j -f \"%Y-%m-%dT%H:%M:%SZ\" \"${AWS_MFA_EXPIRY}\" +%s)";
+  else
+    expiry_epoch="$(date -d ${AWS_MFA_EXPIRY} +%s)";
+  fi
+
   local current_epoch="$(date -u +%s)";
   local delta=$((expiry_epoch - current_epoch));
 

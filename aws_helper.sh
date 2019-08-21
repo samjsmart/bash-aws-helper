@@ -195,6 +195,14 @@ EOF
     __aws_helper_log 'error' 'Error setting credentials'
     return 1;
   fi;
+
+  __aws_helper_update_prompt "Profile" "${AWS_PROFILE}";
+}
+
+function __aws_helper_update_prompt() {
+  stripped_ps1="$(echo $PS1 | sed 's|\\e\[36m\[AWS[^]]*]\\e\[0m:||g')";
+
+  PS1="\e[36m[AWS ${1}: ${2}]\e[0m:${stripped_ps1} ";
 }
 
 ##
@@ -219,6 +227,7 @@ EOF
   local mfa_serial;
   local mfa_token;
   local sts_token;
+  local iam_user_name;
   local sts_duration=43200;
 
   while (($#)); do
@@ -245,11 +254,8 @@ EOF
     return 1;
   fi;
 
-  mfa_serial="$(aws iam list-mfa-devices --query 'MFADevices[*].SerialNumber' --output text)";
-  if [ ${?} -ne 0 ]; then
-    __aws_helper_log 'error' 'Failed to retrieve MFA devices';
-    return 1;
-  fi;
+  iam_user_name="$(echo ${AWS_ARN} | sed 's|[^/]*/||g')";
+  mfa_serial="arn:aws:iam::${AWS_ACCOUNT_ID}:mfa/${iam_user_name}";
 
   if [ -z "${mfa_token}" ]; then
     __aws_helper_log 'info' 'Enter MFA token: ' '-n';
@@ -416,6 +422,10 @@ EOF
     export AWS_SECRET_ACCESS_KEY;
     export AWS_SESSION_TOKEN;
     export AWS_ROLE="${target_role_arn}"
+
+    local prompt_role_name="$(echo ${target_role_arn} | sed 's|arn:aws:iam::||g ; s|role/||g')";
+
+     __aws_helper_update_prompt 'Role' "${prompt_role_name}";
 
     __aws_helper_log 'info' 'Role assumption successful';
     return 0;

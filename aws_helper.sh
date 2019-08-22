@@ -200,9 +200,9 @@ EOF
 }
 
 function __aws_helper_update_prompt() {
-  stripped_ps1="$(echo $PS1 | sed 's|\\e\[36m\[AWS[^]]*]\\e\[0m:||g')";
+  stripped_ps1="$(echo $PS1 | sed 's|\\\[\\033\[36m\\]\[AWS[^]]*]\\\[\\033\[0m\\]:||g')";
 
-  PS1="\e[36m[AWS ${1}: ${2}]\e[0m:${stripped_ps1} ";
+  PS1="\[\033[36m\][AWS ${1}: ${2}]\[\033[0m\]:${stripped_ps1} ";
 }
 
 ##

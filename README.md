@@ -5,6 +5,19 @@ A helper script to ease some of the pain involved in mandatory MFA and Cross-Acc
 Copy the aws_helper.sh file into your home directory and add `. ~/aws_helper.sh` to the end of your `~/.bash_profile`.
 Ensure this is loaded into your current shell by either relogging or running the command `source ~/aws_helper.sh`.
 
+## Examples
+Setting credentials  
+![Setting Credentials](images/set-creds.png)
+
+MFA Authentication  
+![MFA Authentication](images/mfa.png)
+
+Assuming a role  
+![Assume role](images/assume-role.png)
+
+Assuming a role with MFA & External ID requirements
+![Assume role with MFA and External ID](images/assume-role-mfa-external-id.png)
+
 ## Usage
 All commands are available via `aws-helper` and support tab completion. Each command supports the `help` subcommand for further information.
 See an outline of the commands below.

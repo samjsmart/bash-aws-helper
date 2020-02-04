@@ -39,6 +39,7 @@ function aws-helper() {
         ( cat <<EOF
 Action|Summary
 -----|-------
+assume-role|Assume a role
 clear|Unset AWS credentials
 help|This command
 mfa|Obtain an MFA STS session

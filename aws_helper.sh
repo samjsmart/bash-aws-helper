@@ -6,7 +6,7 @@ shopt -s extglob
 ##
 # Tab completion
 ##
-complete -W "assume-role clear help mfa mfa-validate set-creds validate" aws-helper;
+complete -W "assume-role clear help list-creds mfa mfa-validate set-creds validate" aws-helper;
 
 ##
 # Main aws_helper function

@@ -136,9 +136,23 @@ EOF
 
   ## Do we have the tools
 
-  local GREP=$(which ggrep) || local GREP=${which grep} || __aws_helper_log 'error' 'Cannot locate tool: grep';
-  local CUT=$(which cut) || __aws_helper_log 'error' 'Cannot locate tool: cut';
-  local TR=$(which tr) || __aws_helper_log 'error' 'Cannot locate tool: tr';
+  local GREP=$(which ggrep  2>/dev/null || which grep 2>/dev/null) 
+  if [ -z "$GREP" ]; then
+    __aws_helper_log 'error' 'Cannot locate tool: grep';
+    return 1
+  fi
+  
+  local CUT=$(which cut 2>/dev/null) 
+  if [ -z "$CUT" ]; then
+    __aws_helper_log 'error' 'Cannot locate tool: cut';
+    return 1
+  fi
+  
+  local TR=$(which tr 2>/dev/null) 
+  if [ -z "$TR" ]; then 
+    __aws_helper_log 'error' 'Cannot locate tool: tr';
+    return 1
+  fi
 
   if [ "${1}" == "--file" ]; then
     CREDENTIALS="${2}"

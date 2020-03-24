@@ -6,7 +6,7 @@ shopt -s extglob
 ##
 # Tab completion
 ##
-complete -W "assume-role clear help mfa mfa-validate set-creds validate" aws-helper;
+complete -W "assume-role clear help list-creds mfa mfa-validate set-creds validate" aws-helper;
 
 ##
 # Main aws_helper function
@@ -21,6 +21,9 @@ function aws-helper() {
     ;;
     'clear')
       __aws_helper_clear_credentials ${@};
+    ;;
+    'list-creds')
+      __aws_helper_list_credentials ${@};
     ;;
     'mfa')
       __aws_helper_mfa_authenticate ${@};
@@ -42,6 +45,7 @@ Action|Summary
 assume-role|Assume a role
 clear|Unset AWS credentials
 help|This command
+list-creds|Get list of credentials options in configuration file
 mfa|Obtain an MFA STS session
 mfa-validate|Validate current MFA session
 set-creds|Set AWS credentials in current shell
@@ -111,6 +115,53 @@ EOF
   unset AWS_PROFILE;
   unset AWS_ACCOUNT_ID;
   unset AWS_ARN;
+}
+
+##
+# Get list of credentials from users config files
+##
+function __aws_helper_list_credentials() {
+ if [ "${1}" == "help" ]; then
+      cat <<EOF
+List AWS environment credentials in user configuration
+
+Usage: aws-helper list-creds [OPTIONS]
+
+Options:
+  --file <credentials filename>
+
+  default = ~/.aws/credentials
+EOF
+      return 0;
+  fi
+
+  ## Do we have the tools
+
+  local GREP=$(which ggrep  2>/dev/null || which grep 2>/dev/null) 
+  if [ -z "$GREP" ]; then
+    __aws_helper_log 'error' 'Cannot locate tool: grep';
+    return 1
+  fi
+  
+  local CUT=$(which cut 2>/dev/null) 
+  if [ -z "$CUT" ]; then
+    __aws_helper_log 'error' 'Cannot locate tool: cut';
+    return 1
+  fi
+  
+  local TR=$(which tr 2>/dev/null) 
+  if [ -z "$TR" ]; then 
+    __aws_helper_log 'error' 'Cannot locate tool: tr';
+    return 1
+  fi
+
+  if [ "${1}" == "--file" ]; then
+    CREDENTIALS="${2}"
+  else
+    CREDENTIALS="$HOME/.aws/credentials"
+  fi
+
+  $GREP "^\[" $CREDENTIALS |$CUT -d ']' -f 1 | $TR -d '['
 }
 
 ##

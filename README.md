@@ -98,3 +98,10 @@ Usage: `aws-helper clear`
 Display a list of commands along with a brief summary.
 
 Usage: `aws-helper help`
+
+#### aws-helper list-creds
+---
+Display a list of credential options from the users local configuration
+
+Usage: `aws-helper list-creds`
+

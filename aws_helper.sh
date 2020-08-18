@@ -413,12 +413,25 @@ EOF
     return 1;
   fi;
 
+  local session_name;
   local target_role_arn;
   local target_account;
   local target_role;
   local target_external_id;
   local sts_mfa;
   local sts_duration="--duration-seconds 3600";
+
+  if [ -f ~/.aws-config/config ]; then
+    __aws_helper_log 'info' 'AWS Config file found.';
+
+    local alias="$(sed -n "/[$1]/{n;p;}" ~/.aws-config/config 2>/dev/null)";
+
+    if [ ! -z "${alias}" ]; then
+      __aws_helper_log 'info' "Matching Alias found for [${1}]";
+
+      set -- $alias;
+    fi
+  fi
 
   while (($#)); do
     case "${1}" in
@@ -459,7 +472,8 @@ EOF
      __aws_helper_log 'info' "Role ARN: ${target_role_arn}";
   fi;
 
-  sts_token=($(aws sts assume-role ${sts_duration} ${target_external_id} ${sts_mfa} --role-arn "${target_role_arn}" --role-session-name "${AWS_ARN//[:\/]/-}" --query Credentials --output text));
+  session_name=$(echo "${AWS_ARN//[:\/]/-}" | cut -c 1-64);
+  sts_token=($(aws sts assume-role ${sts_duration} ${target_external_id} ${sts_mfa} --role-arn "${target_role_arn}" --role-session-name "${session_name}" --query Credentials --output text));
   if [ ${?} -ne 0 ]; then
     __aws_helper_log 'error' 'Failed to get STS token';
     return 1;

@@ -108,7 +108,7 @@ Usage: `aws-helper list-creds`
 ## Configuration File
 If you have a long role name, a combination of account & role name, or any other frequently 
 used assume-role command, then you can create aliases to these commands by adding them to the
-file `~/.aws-help/config`. These aliases can then be used by running the command
+file `~/.aws-config/config`. These aliases can then be used by running the command
 `aws-helper assume-role alias-name`
 
 ### Example

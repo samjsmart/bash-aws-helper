@@ -105,10 +105,16 @@ Display a list of credential options from the users local configuration
 
 Usage: `aws-helper list-creds`
 
+#### aws-helper list-aliases
+---
+List AWS Helper aliases configured in `~/.aws-helper/config`
+
+Usage: `aws-helper list-aliases`
+
 ## Configuration File
 If you have a long role name, a combination of account & role name, or any other frequently 
 used assume-role command, then you can create aliases to these commands by adding them to the
-file `~/.aws-help/config`. These aliases can then be used by running the command
+file `~/.aws-helper/config`. These aliases can then be used by running the command
 `aws-helper assume-role alias-name`
 
 ### Example

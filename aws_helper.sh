@@ -6,7 +6,7 @@ shopt -s extglob
 ##
 # Tab completion
 ##
-complete -W "assume-role clear help list-creds mfa mfa-validate set-creds validate" aws-helper;
+complete -W "assume-role clear help list-creds list-aliases mfa mfa-validate set-creds validate" aws-helper;
 
 ##
 # Main aws_helper function
@@ -24,6 +24,9 @@ function aws-helper() {
     ;;
     'list-creds')
       __aws_helper_list_credentials ${@};
+    ;;
+    'list-aliases')
+      __aws_helper_list_aliases ${@};
     ;;
     'mfa')
       __aws_helper_mfa_authenticate ${@};
@@ -162,6 +165,28 @@ EOF
   fi
 
   $GREP "^\[" $CREDENTIALS |$CUT -d ']' -f 1 | $TR -d '['
+}
+
+##
+# Get list of aliases in ./aws-helper/config
+##
+function __aws_helper_list_aliases() {
+ if [ "${1}" == "help" ]; then
+      cat <<EOF
+List AWS Helper aliases configured in ~/.aws-helper/config
+
+Usage: aws-helper list-aliases
+EOF
+      return 0;
+  fi
+  
+  if [ ! -f ~/.aws-helper/config ]; then
+     __aws_helper_log 'info' 'No config file found at ~/.aws-helper/config';
+
+     return 0;
+  fi;
+  
+  grep -A1 "\[" ~/.aws-helper/config | sed "/^\[/! s/^/  /";
 }
 
 ##
@@ -421,10 +446,10 @@ EOF
   local sts_mfa;
   local sts_duration="--duration-seconds 3600";
 
-  if [ -f ~/.aws-config/config ]; then
+  if [ -f ~/.aws-helper/config ]; then
     __aws_helper_log 'info' 'AWS Config file found.';
 
-    local alias="$(sed -n "/[$1]/{n;p;}" ~/.aws-config/config 2>/dev/null)";
+    local alias="$(sed -n "/[$1]/{n;p;}" ~/.aws-helper/config 2>/dev/null)";
 
     if [ ! -z "${alias}" ]; then
       __aws_helper_log 'info' "Matching Alias found for [${1}]";

@@ -449,7 +449,7 @@ EOF
   if [ -f ~/.aws-helper/config ]; then
     __aws_helper_log 'info' 'AWS Config file found.';
 
-    local alias="$(sed -n "/[$1]/{n;p;}" ~/.aws-helper/config 2>/dev/null)";
+    local alias="$(sed -n "/\[$1\]/{n;p;}" ~/.aws-helper/config 2>/dev/null)";
 
     if [ ! -z "${alias}" ]; then
       __aws_helper_log 'info' "Matching Alias found for [${1}]";

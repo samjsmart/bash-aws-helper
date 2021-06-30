@@ -85,13 +85,17 @@ Options:
                   Valid ranges are 900 to 129600. Default is 3,600 seconds (1 hour).
 ```
 
+#### aws-helper saml-login
+---
+Invoke a SAML login using [saml2aws](https://github.com/Versent/saml2aws).
+
+Usage: `aws-helper saml-login`
 
 #### aws-helper clear
 ---
 Clear current environment credentials.
 
 Usage: `aws-helper clear`
-
 
 #### aws-helper help
 ---

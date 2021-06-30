@@ -6,7 +6,7 @@ shopt -s extglob
 ##
 # Tab completion
 ##
-complete -W "assume-role clear help list-creds list-aliases mfa mfa-validate set-creds validate" aws-helper;
+complete -W "assume-role clear help list-creds list-aliases mfa mfa-validate saml-login set-creds validate get-session-token" aws-helper;
 
 ##
 # Main aws_helper function
@@ -22,6 +22,9 @@ function aws-helper() {
     'clear')
       __aws_helper_clear_credentials ${@};
     ;;
+    'get-session-token')
+      __aws_helper_get_session_token ${@};
+    ;;
     'list-creds')
       __aws_helper_list_credentials ${@};
     ;;
@@ -33,6 +36,9 @@ function aws-helper() {
     ;;
     'mfa-validate')
       __aws_helper_mfa_validate ${@};
+    ;;
+    'saml-login')
+      __aws_helper_saml_login ${@};
     ;;
     'set-creds')
       __aws_helper_set_credentials ${@};
@@ -46,11 +52,13 @@ function aws-helper() {
 Action|Summary
 -----|-------
 assume-role|Assume a role
+get-session-token|Get temporary environment credentials from current profile
 clear|Unset AWS credentials
 help|This command
 list-creds|Get list of credentials options in configuration file
 mfa|Obtain an MFA STS session
 mfa-validate|Validate current MFA session
+saml-login|Login using saml2aws and set environment credentials
 set-creds|Set AWS credentials in current shell
 validate|Perform an STS get-caller-identity to validate current credentials
 EOF
@@ -280,6 +288,101 @@ function __aws_helper_update_prompt() {
   stripped_ps1="$(echo $PS1 | sed 's|\\\[\\033\[36m\\]\[AWS[^]]*]\\\[\\033\[0m\\]:||g')";
 
   PS1="\[\033[36m\][AWS ${1}: ${2}]\[\033[0m\]:${stripped_ps1} ";
+}
+
+
+##
+# Get session token for IAM user
+##
+function __aws_helper_get_session_token() {
+  if [ "${1}" == "help" ]; then 
+      cat <<EOF
+Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN environment variables using current profile.
+
+Usage: aws-helper get-session-token
+
+Options:
+  --duration VALUE  Duration, in seconds, that credentials should remain valid.
+                    Valid ranges are 900 to 129600. Default is 43,200 seconds (12 hours).
+
+Notes: If profile is not provided then stdin is used.
+EOF
+      return 0;
+  fi;
+
+  local sts_token;
+  local sts_duration=43200; 
+
+  while (($#)); do
+    case "${1}" in
+      '--duration')
+        sts_duration="${2}";
+        shift 2;
+      ;;
+    esac;
+  done
+
+  sts_token=($(aws sts get-session-token --duration-seconds "${sts_duration}" --output text));
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Failed to get STS token';
+    return 1;
+  fi;
+
+  AWS_ACCESS_KEY_ID="${sts_token[1]}";
+  AWS_SECRET_ACCESS_KEY="${sts_token[3]}";
+  AWS_SESSION_TOKEN="${sts_token[4]}";
+
+  if [[ -n "${AWS_ACCESS_KEY_ID}" && -n "${AWS_SECRET_ACCESS_KEY}" && -n "${AWS_SESSION_TOKEN}" ]]; then
+    export AWS_ACCESS_KEY_ID;
+    export AWS_SECRET_ACCESS_KEY;
+    export AWS_SESSION_TOKEN;
+    export AWS_MFA_EXPIRY;
+
+    __aws_helper_update_prompt 'Environment' "${AWS_PROFILE}";
+
+    unset AWS_PROFILE;
+
+    __aws_helper_log 'info' 'Token vend successful';
+    return 0;
+  else
+    __aws_helper_log 'error' 'Token vend failed';
+    return 1;
+  fi;
+}
+
+#
+# Get session token for IAM user
+##
+function __aws_helper_saml_login() {
+  if [ "${1}" == "help" ]; then 
+      cat <<EOF
+A very simple wrapper around saml2aws.
+
+Usage: aws-helper saml-login
+EOF
+      return 0;
+  fi;
+
+  { login_repsonse=$(set -o pipefail && saml2aws login --force --quiet | tee /dev/fd/3 | col -b); } 3>&1
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Failed saml2aws login';
+    return 1;
+  fi;
+
+  local env_vars="$(saml2aws script)";
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Failed to get saml2aws environment credentials';
+    return 1;
+  fi;
+
+  eval ${env_vars};
+
+  account_name=$(echo ${login_repsonse} | sed 's|.*: \(.*\) (.*|\1|');
+  role_name=$(echo ${login_repsonse} | sed 's|.* / \(.*\)0m|\1|');
+
+  __aws_helper_update_prompt 'Role' "${account_name}/${role_name}";
+
+  __aws_helper_log 'info' 'Token vend successful';
 }
 
 ##
@@ -516,7 +619,7 @@ EOF
 
     local prompt_role_name="$(echo ${target_role_arn} | sed 's|arn:aws:iam::||g ; s|role/||g')";
 
-     __aws_helper_update_prompt 'Role' "${prompt_role_name}";
+    __aws_helper_update_prompt 'Role' "${prompt_role_name}";
 
     __aws_helper_log 'info' 'Role assumption successful';
     return 0;

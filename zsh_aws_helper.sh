@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 
+# This script requires bashcompinit and compinit
+# autoload -Uz compinit
+# autoload bashcompinit
+# compinit
+# bashcompinit
+
+# required
+setopt KSH_ARRAYS;
+setopt sh_word_split;
+
 # Enable extended shell globbing
-shopt -s extglob
+#shopt -s extglob
 
 ##
 # Tab completion
@@ -79,12 +89,12 @@ function __aws_helper_reset_log_level() {
 # Generic logging function
 ##
 function __aws_helper_log() {
-  local silent="${AWS_HELPER_LOG_SILENT:-0}"
+  local silent=${3:-0};
   local level="$(echo "${1}" | awk '{print toupper($0)}')";
   local default_color='\033[0m';
   local color;
 
-  if [[ silent -eq 1 ]]; then
+  if [ ${silent} -eq 1 ]; then
     return 0;
   fi;
 
@@ -107,7 +117,7 @@ function __aws_helper_log() {
 # Clear all AWS environment variables
 ##
 function __aws_helper_clear_credentials() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Clear current environment credentials.
 
@@ -134,7 +144,7 @@ EOF
 # Get list of credentials from users config files
 ##
 function __aws_helper_list_credentials() {
- if [ "${1}" == "help" ]; then
+ if [ "${1}" = "help" ]; then
       cat <<EOF
 List AWS environment credentials in user configuration
 
@@ -168,7 +178,7 @@ EOF
     return 1
   fi
 
-  if [ "${1}" == "--file" ]; then
+  if [ "${1}" = "--file" ]; then
     CREDENTIALS="${2}"
   else
     CREDENTIALS="$HOME/.aws/credentials"
@@ -181,7 +191,7 @@ EOF
 # Get list of aliases in ./aws-helper/config
 ##
 function __aws_helper_list_aliases() {
- if [ "${1}" == "help" ]; then
+ if [ "${1}" = "help" ]; then
       cat <<EOF
 List AWS Helper aliases configured in ~/.aws-helper/config
 
@@ -203,7 +213,7 @@ EOF
 # Confirm valid environment credentials
 ##
 function __aws_helper_validate_credentials() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Validate current AWS environment credentials
 
@@ -215,15 +225,16 @@ EOF
       return 0;
   fi
 
-  if [ "${1}" == "--silent" ]; then
-    export AWS_HELPER_LOG_SILENT=1;
-    trap __aws_helper_reset_log_level RETURN
+  local silent;
+
+  if [ "${1}" = "--silent" ]; then
+    silent=1
   fi
 
   local caller_identity;
   caller_identity=($(aws sts get-caller-identity --output text 2>/dev/null));
   if [ ${?} -ne 0 ]; then
-    __aws_helper_log 'error' 'Unable to validate credentials';
+    __aws_helper_log 'error' 'Unable to validate credentials' ${silent};
     return 1; 
   fi;
 
@@ -232,17 +243,17 @@ EOF
   local user_id="${caller_identity[2]}";
 
   if [[ -n "${account_id}" && -n "${arn}" && -n "${user_id}" ]]; then
-    __aws_helper_log 'info' "AWS Profile: ${AWS_PROFILE}";
-    __aws_helper_log 'info' "Account ID: ${account_id}";
-    __aws_helper_log 'info' "ARN: ${arn}";
-    __aws_helper_log 'info' "User ID: ${user_id}";
+    __aws_helper_log 'info' "AWS Profile: ${AWS_PROFILE}" ${silent};
+    __aws_helper_log 'info' "Account ID: ${account_id}" ${silent};
+    __aws_helper_log 'info' "ARN: ${arn}" ${silent};
+    __aws_helper_log 'info' "User ID: ${user_id}" ${silent};
 
     export AWS_ACCOUNT_ID="${account_id}";
     export AWS_ARN="${arn}";
 
     return 0;
   else
-    __aws_helper_log 'error' 'Error checking credentials';
+    __aws_helper_log 'error' 'Error checking credentials' ${silent};
     return 1;
   fi;
 }
@@ -251,7 +262,7 @@ EOF
 # Set AWS credentials based on profile
 ##
 function __aws_helper_set_credentials() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Set AWS_PROFILE environment variable and validate credentials.
 
@@ -287,14 +298,14 @@ EOF
 }
 
 function __aws_helper_clear_prompt() {
-  stripped_ps1="$(echo $PS1 | sed 's|\\\[\\033\[36m\\]\[AWS[^]]*]\\\[\\033\[0m\\]:||g')";
+  stripped_ps1="$(echo $PS1 | sed 's|\%F{blue}\[AWS[^]]*]\%f ||g')";
   PS1="${stripped_ps1} "
 }
 
 function __aws_helper_update_prompt() {
   __aws_helper_clear_prompt;
 
-  PS1="\[\033[36m\][AWS ${1}: ${2}]\[\033[0m\]:${PS1}";
+  PS1="%F{blue}[AWS ${1}: ${2}]%f ${PS1}";
 }
 
 
@@ -302,7 +313,7 @@ function __aws_helper_update_prompt() {
 # Get session token for IAM user
 ##
 function __aws_helper_get_session_token() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Set AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN environment variables using current profile.
 
@@ -361,7 +372,7 @@ EOF
 # Get session token for IAM user
 ##
 function __aws_helper_saml_login() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 A very simple wrapper around saml2aws.
 
@@ -396,7 +407,7 @@ EOF
 # Authenticate MFA devices
 ##
 function __aws_helper_mfa_authenticate() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Obtain STS token using MFA and set environment variables accordingly.
 
@@ -478,7 +489,7 @@ EOF
 # Check MFA validity
 ##
 function __aws_helper_mfa_validate() {
-  if [ "${1}" == "help" ]; then 
+  if [ "${1}" = "help" ]; then 
       cat <<EOF
 Validate current AWS STS MFA credentials
 
@@ -490,20 +501,21 @@ EOF
       return 0;
   fi
 
-  if [ "${1}" == "--silent" ]; then
-    export AWS_HELPER_LOG_SILENT=1;
-    trap __aws_helper_reset_log_level RETURN
+  local silent;
+
+  if [ "${1}" = "--silent" ]; then
+    silent=1
   fi
 
   if [[ -z "${AWS_SESSION_TOKEN}" || -z "${AWS_MFA_EXPIRY}" ]]; then
-    __aws_helper_log 'error' 'No STS session present - Use aws-helper mfa to obtain one';
+    __aws_helper_log 'error' 'No STS session present - Use aws-helper mfa to obtain one' ${silent};
     return 1;
   fi
 
   local expiry_epoch;
 
   # Workaround for OSX date
-  if [ "$(uname)" == "Darwin" ]; then
+  if [ "$(uname)" = "Darwin" ]; then
     expiry_epoch="$(date -j -f \"%Y-%m-%dT%H:%M:%SZ\" \"${AWS_MFA_EXPIRY}\" +%s)";
   else
     expiry_epoch="$(date -d ${AWS_MFA_EXPIRY} +%s)";
@@ -513,10 +525,10 @@ EOF
   local delta=$((expiry_epoch - current_epoch));
 
   if [[ $delta -gt 0 ]]; then
-    __aws_helper_log 'info' "MFA session valid for next ${delta} seconds";
+    __aws_helper_log 'info' "MFA session valid for next ${delta} seconds" ${silent};
     return 0;
   else
-    __aws_helper_log 'error' 'MFA session expired';
+    __aws_helper_log 'error' 'MFA session expired' ${silent};
     return 1;
   fi
 }
@@ -525,7 +537,7 @@ EOF
 # Assume a cross account role
 ##
 function __aws_helper_assume_role() {
-  if [[ "${1}" == "help" ]]; then 
+  if [[ "${1}" = "help" ]]; then 
       cat <<EOF
 Assume a role. Provide either a role name and account or the role arn. If no account
 is provided then the current account is implicitly assumed.

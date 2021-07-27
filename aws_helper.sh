@@ -365,12 +365,27 @@ function __aws_helper_saml_login() {
       cat <<EOF
 A very simple wrapper around saml2aws.
 
-Usage: aws-helper saml-login
+Usage: aws-helper saml-login [OPTIONS]
+
+Options:
+  --duration VALUE  Duration, in seconds, that credentials should remain valid.
+                    Valid ranges are 900 to 129600. Default is 28800 seconds (8 hours).
 EOF
       return 0;
   fi;
 
-  { login_repsonse=$(set -o pipefail && saml2aws login --force --quiet | tee /dev/fd/3 | col -b); } 3>&1
+  local session_duration="28800"
+
+  while (($#)); do
+    case "${1}" in
+      '--duration')
+        session_duration="${2}";
+        shift 2;
+      ;;
+    esac;
+  done
+
+  { login_repsonse=$(set -o pipefail && saml2aws --session-duration=${session_duration} login --force --quiet | tee /dev/fd/3 | col -b); } 3>&1
   if [ ${?} -ne 0 ]; then
     __aws_helper_log 'error' 'Failed saml2aws login';
     return 1;

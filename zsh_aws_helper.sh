@@ -136,6 +136,7 @@ EOF
   unset AWS_PROFILE;
   unset AWS_ACCOUNT_ID;
   unset AWS_ARN;
+  unset AWS_SECURITY_TOKEN;
 
   __aws_helper_clear_prompt
 }
@@ -379,6 +380,12 @@ A very simple wrapper around saml2aws.
 Usage: aws-helper saml-login
 EOF
       return 0;
+  fi;
+
+  __aws_helper_clear_credentials;
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Unable to clear credentials';
+    return 1; 
   fi;
 
   { login_repsonse=$(set -o pipefail && saml2aws login --force --quiet | tee /dev/fd/3 | col -b); } 3>&1

@@ -126,6 +126,7 @@ EOF
   unset AWS_PROFILE;
   unset AWS_ACCOUNT_ID;
   unset AWS_ARN;
+  unset AWS_SECURITY_TOKEN;
 
   __aws_helper_clear_prompt
 }
@@ -372,6 +373,11 @@ Options:
                     Valid ranges are 900 to 129600. Default is 28800 seconds (8 hours).
 EOF
       return 0;
+  fi;
+  __aws_helper_clear_credentials;
+  if [ ${?} -ne 0 ]; then
+    __aws_helper_log 'error' 'Unable to clear credentials';
+    return 1; 
   fi;
 
   local session_duration="28800"
